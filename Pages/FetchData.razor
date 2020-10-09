@@ -1,0 +1,82 @@
+﻿@page "/fetchdata"
+@inject HttpClient Http
+@inject IJSRuntime JS
+<h1>Weather forecast</h1>
+
+<p>This component demonstrates fetching data from the server.</p>
+@responseBody
+@if (articles == null)
+{
+    <p><em>Loading...</em></p>
+}
+else
+{
+    <table class="table">
+        <thead>
+            <tr>
+                <th>author</th>
+                <th>title</th>
+                <th>description</th>
+               
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var article in articles)
+            {
+                <tr>
+                    <td>@article.author</td>
+                    <td>@article.title</td>
+                    <td>@article.description</td>
+                  
+                </tr>
+            }
+        </tbody>
+    </table>
+    
+}
+
+@code {
+    private NewsArticle[] articles;
+    private string responseBody;
+
+    protected override async Task OnInitializedAsync()
+    {
+        Console.WriteLine("Initialize Fetch Data");
+        
+         var locallyStoredArticles= await JS.InvokeAsync<string>(
+               "sessionDoZenStorage.getItem", "NewsInfo");
+
+        if (locallyStoredArticles != null)
+        {
+           Console.WriteLine("locallyStoredArticles is not null");
+           articles = JsonSerializer.Deserialize<NewsArticle[]>(locallyStoredArticles);
+           
+
+        }
+        StateHasChanged();
+        var newsInfo = await Http.GetStringAsync("https://localhost:44307/weatherforecast");
+     articles = JsonSerializer.Deserialize<NewsArticle[]>(newsInfo);
+         await JS.InvokeVoidAsync("sessionDoZenStorage.setItem",
+                      "NewsInfo", newsInfo);
+                      
+   StateHasChanged();
+      
+    }
+
+    public class NewsInfo
+    {
+        public string status { get; set; }
+
+        public int totalResults { get; set; }
+
+        public NewsArticle[] articles { get; set; }
+
+       
+    }
+    public class NewsArticle
+    {
+        public string author { get; set; }
+        public string title { get; set; }
+        public string description { get; set; }
+    }
+}
